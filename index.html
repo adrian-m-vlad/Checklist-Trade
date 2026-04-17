@@ -264,18 +264,26 @@ canvas#qrCanvas{display:none}
 <div class="toast" id="toast"></div>
 
 <script>
-  const supabaseUrl = 'https://omemmjiiatjdpmpbuey.supabase.co';
+const supabaseUrl = 'https://omemmjiialtjdpmpebuy.supabase.co';
 const supabaseKey = 'sb_publishable_Am44_fgr0esBVsvREXohbA_kjn76Cgq';
 
 const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
 async function testSupabase() {
   const { data, error } = await supabaseClient
-    .from('Expozanti') // sau 'expozanti' dacă ai făcut cu litere mici
+    .from('Expozanti')
     .insert([
-      { nume: 'Test Sync', categorie: 'Demo', stand: 'A-01', status: 'nou', prioritate: false }
-    ]);
+      {
+        nume: 'Test Sync',
+        categorie: 'Demo',
+        stand: 'A-01',
+        status: 'nou',
+        prioritate: false
+      }
+    ])
+    .select();
 
+  console.log('SUPABASE URL:', supabaseUrl);
   console.log('data:', data);
   console.log('error:', error);
 }
