@@ -268,25 +268,6 @@ const supabaseUrl = 'https://omemmjiialtjdpmpebuy.supabase.co';
 const supabaseKey = 'sb_publishable_Am44_fgr0esBVsvREXohbA_kjn76Cgq';
 const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-async function testSupabase() {
-  const { data, error } = await supabaseClient
-    .from('Expozanti')
-    .insert([
-      {
-        Nume: 'Test Sync',
-        Categorie: 'Demo',
-        Stand: 'A-01',
-        Status: 'nou'
-      }
-    ])
-    .select();
-
-  console.log('SUPABASE URL:', supabaseUrl);
-  console.log('data:', data);
-  console.log('error:', error);
-}
-
-testSupabase();
 let exhibitors=[],filter='all',activeId=null,qrStream=null,qrScannedData=null,qrInterval=null;
 const STORAGE_KEY='checklist_targ_v2';
 
