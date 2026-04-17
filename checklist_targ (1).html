@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Checklist Târg</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<style>
+:root{--green:#1a6b3c;--green-light:#2d9c5a;--green-pale:#e8f5ee;--green-mid:#c3e6d0;--amber:#d97706;--amber-pale:#fef3c7;--red:#c0392b;--red-pale:#fdecea;--blue:#1e6fa8;--blue-pale:#e8f1f8;--purple:#6d28d9;--purple-pale:#ede9fe;--gray-dark:#1c1c1e;--gray:#6b7280;--gray-light:#f4f4f5;--white:#fff;--border:#e5e7eb;--shadow:0 2px 12px rgba(0,0,0,.08);--radius:16px;--radius-sm:10px}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'DM Sans',sans-serif;background:#f0f4f1;color:var(--gray-dark);min-height:100vh;padding-bottom:110px}
+.header{background:var(--green);color:#fff;padding:52px 20px 24px;position:sticky;top:0;z-index:100;box-shadow:0 4px 20px rgba(26,107,60,.3)}
+.header-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.header h1{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;letter-spacing:-.5px;line-height:1.2}
+.header h1 span{opacity:.7;font-weight:600;font-size:14px;display:block;margin-bottom:2px}
+.progress-ring{flex-shrink:0;position:relative;width:56px;height:56px}
+.progress-ring svg{transform:rotate(-90deg)}
+.progress-ring .bg{fill:none;stroke:rgba(255,255,255,.2);stroke-width:5}
+.progress-ring .bar{fill:none;stroke:#fff;stroke-width:5;stroke-linecap:round;transition:stroke-dashoffset .5s ease}
+.progress-ring .label{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:#fff;line-height:1}
+.progress-ring .label small{font-size:9px;opacity:.7}
+.stats-row{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.stat-chip{background:rgba(255,255,255,.15);border-radius:20px;padding:4px 10px;font-size:12px;font-weight:500;display:flex;align-items:center;gap:4px;backdrop-filter:blur(4px)}
+.filters{display:flex;gap:8px;overflow-x:auto;padding:14px 16px;scrollbar-width:none;background:#fff;border-bottom:1px solid var(--border);position:sticky;top:120px;z-index:90}
+.filters::-webkit-scrollbar{display:none}
+.filter-btn{flex-shrink:0;padding:7px 14px;border-radius:20px;border:1.5px solid var(--border);background:#fff;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;color:var(--gray)}
+.filter-btn.active{background:var(--green);color:#fff;border-color:var(--green)}
+.add-section{margin:14px 14px 0;background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.add-toggle{display:flex;align-items:center;gap:10px;padding:14px 16px;cursor:pointer;font-weight:600;font-size:14px;color:var(--green);border:none;background:none;width:100%;text-align:left}
+.add-toggle .plus{width:28px;height:28px;background:var(--green);color:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:300;flex-shrink:0;transition:transform .2s}
+.add-toggle.open .plus{transform:rotate(45deg)}
+.add-form{display:none;padding:0 16px 16px;flex-direction:column;gap:10px}
+.add-form.open{display:flex}
+.form-row{display:flex;gap:8px}
+.form-field{flex:1;display:flex;flex-direction:column;gap:4px}
+.form-field label{font-size:11px;font-weight:600;color:var(--gray);text-transform:uppercase;letter-spacing:.5px}
+.form-field input,.form-field select,.form-field textarea{padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:14px;color:var(--gray-dark);background:var(--gray-light);outline:none;width:100%;transition:border-color .15s}
+.form-field input:focus,.form-field select:focus,.form-field textarea:focus{border-color:var(--green);background:#fff}
+.form-field textarea{resize:none;min-height:60px}
+.btn-add{padding:12px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-family:'Syne',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:background .15s}
+.btn-add:active{background:#145530}
+.list-section{padding:14px;display:flex;flex-direction:column;gap:10px}
+.empty-state{text-align:center;padding:40px 20px;color:var(--gray);font-size:14px}
+.empty-state .icon{font-size:40px;margin-bottom:10px}
+.card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;transition:transform .15s;border-left:4px solid var(--border)}
+.card.status-visited{border-left-color:var(--green-light)}
+.card.status-absent{border-left-color:var(--red)}
+.card.status-scheduled{border-left-color:var(--blue)}
+.card.priority-high{border-top:2px solid var(--amber)}
+.card-header{display:flex;align-items:flex-start;gap:10px;padding:14px 14px 10px}
+.card-index{font-family:'DM Mono',monospace;font-size:11px;color:var(--gray);flex-shrink:0;margin-top:2px;min-width:20px}
+.card-info{flex:1;min-width:0}
+.card-name{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px}
+.tag{font-size:11px;font-weight:500;padding:2px 8px;border-radius:20px;background:var(--gray-light);color:var(--gray)}
+.tag.sector{background:var(--blue-pale);color:var(--blue)}
+.tag.stand{background:var(--green-pale);color:var(--green);font-family:'DM Mono',monospace}
+.tag.prio-high{background:var(--amber-pale);color:var(--amber)}
+.tag.has-contact{background:var(--purple-pale);color:var(--purple)}
+.card-status-btn{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;border:none;background:none;padding:4px}
+.status-circle{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;border:2px dashed var(--border);transition:all .2s}
+.status-circle.visited{background:var(--green-pale);border:2px solid var(--green-light)}
+.status-circle.absent{background:var(--red-pale);border:2px solid var(--red)}
+.status-circle.scheduled{background:var(--blue-pale);border:2px solid var(--blue)}
+.status-label{font-size:9px;color:var(--gray);font-weight:600;text-transform:uppercase;letter-spacing:.3px}
+.card-body{padding:0 14px 14px 44px;display:flex;flex-direction:column;gap:6px}
+.card-contact-line{font-size:13px;color:var(--gray);display:flex;align-items:center;gap:5px}
+.note-preview{font-size:12px;color:var(--gray);font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-actions{display:flex;gap:6px;margin-top:4px;flex-wrap:wrap}
+.action-btn{flex:1;min-width:64px;padding:8px 6px;border:1.5px solid var(--border);border-radius:8px;background:none;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;color:var(--gray-dark);text-align:center}
+.action-btn:active{background:var(--gray-light)}
+.action-btn.danger{color:var(--red);border-color:#fecaca}
+.action-btn.contact-btn{color:var(--purple);border-color:#c4b5fd}
+.card-expand{display:none;padding:0 14px 14px 14px;border-top:1px solid var(--border);margin-top:4px}
+.card-expand.open{display:block}
+.note-area{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:10px;font-family:'DM Sans',sans-serif;font-size:13px;resize:none;min-height:70px;background:var(--gray-light);outline:none;color:var(--gray-dark);margin-top:8px}
+.note-area:focus{border-color:var(--green);background:#fff}
+.expand-label{font-size:11px;font-weight:600;color:var(--gray);text-transform:uppercase;letter-spacing:.4px;display:block;margin-top:12px}
+.material-row{display:flex;align-items:center;justify-content:space-between;margin-top:10px}
+.material-row label{font-size:13px;font-weight:500;display:flex;align-items:center;gap:8px;cursor:pointer}
+.toggle-sw{width:42px;height:24px;border-radius:12px;background:var(--border);position:relative;transition:background .2s;cursor:pointer;-webkit-appearance:none;appearance:none;border:none;outline:none;flex-shrink:0}
+.toggle-sw:checked{background:var(--green)}
+.toggle-sw::after{content:'';position:absolute;width:18px;height:18px;border-radius:50%;background:#fff;top:3px;left:3px;transition:transform .2s;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.toggle-sw:checked::after{transform:translateX(18px)}
+.time-field{margin-top:10px}
+.time-field input{border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;font-family:'DM Mono',monospace;background:var(--gray-light);color:var(--gray-dark);outline:none}
+.time-field input:focus{border-color:var(--green);background:#fff}
+/* Contact section */
+.contact-section{margin-top:14px;padding-top:14px;border-top:1.5px dashed #c4b5fd}
+.contact-section-title{font-size:11px;font-weight:700;color:var(--purple);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.contact-fields{display:flex;flex-direction:column;gap:8px}
+.contact-field-row{display:flex;align-items:center;gap:10px}
+.cf-icon{font-size:18px;flex-shrink:0;width:24px;text-align:center}
+.contact-field-row input{flex:1;border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-family:'DM Sans',sans-serif;font-size:14px;background:var(--gray-light);outline:none;color:var(--gray-dark)}
+.contact-field-row input:focus{border-color:var(--purple);background:#fff}
+.btn-scan-qr{width:100%;margin-top:12px;padding:12px;border:2px dashed var(--purple);border-radius:10px;background:var(--purple-pale);color:var(--purple);font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-scan-qr:active{background:#ddd6fe}
+/* FAB */
+.fab-bar{position:fixed;bottom:0;left:0;right:0;padding:12px 16px 28px;background:rgba(255,255,255,.92);backdrop-filter:blur(12px);border-top:1px solid var(--border);display:flex;gap:10px;z-index:100;max-width:480px;margin:0 auto}
+.fab-sort{flex-shrink:0;padding:13px 14px;border-radius:12px;border:1.5px solid var(--border);background:#fff;font-size:16px;cursor:pointer}
+.fab-save{flex:1;padding:13px;border-radius:12px;border:none;background:var(--green);color:#fff;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:background .15s}
+.fab-save:active,.fab-save.saved{background:#145530}
+/* Toast */
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:var(--gray-dark);color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:500;z-index:999;opacity:0;transition:opacity .3s;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.2)}
+.toast.show{opacity:1}
+/* Bottom sheets */
+.sheet-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;backdrop-filter:blur(3px);align-items:flex-end;justify-content:center}
+.sheet-overlay.open{display:flex}
+.bottom-sheet{background:#fff;border-radius:24px 24px 0 0;width:100%;max-width:480px;padding:16px 16px 44px;animation:slideUp .25s ease;max-height:90vh;overflow-y:auto}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.sheet-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px}
+.sheet-title{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;margin-bottom:6px;text-align:center}
+.sheet-sub{font-size:12px;color:var(--gray);text-align:center;margin-bottom:18px}
+.status-options{display:flex;flex-direction:column;gap:8px}
+.status-option{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:12px;cursor:pointer;border:2px solid var(--border);background:#fff}
+.so-icon{font-size:22px;flex-shrink:0}
+.so-label{font-weight:600;font-size:14px}
+.so-desc{font-size:12px;color:var(--gray)}
+.status-option[data-val="visited"]{border-color:var(--green-mid);background:var(--green-pale)}
+.status-option[data-val="absent"]{border-color:#fca5a5;background:var(--red-pale)}
+.status-option[data-val="scheduled"]{border-color:#93c5fd;background:var(--blue-pale)}
+.export-options{display:flex;flex-direction:column;gap:10px}
+.export-option{display:flex;align-items:center;gap:14px;padding:16px;border-radius:14px;cursor:pointer;border:2px solid var(--border);background:#fff;text-align:left;width:100%}
+.export-option.excel{border-color:#a7f3d0;background:#f0fdf4}
+.export-option.pdf{border-color:#fca5a5;background:#fff5f5}
+.export-icon{font-size:28px;flex-shrink:0}
+.export-label{font-weight:700;font-size:15px;font-family:'Syne',sans-serif}
+.export-desc{font-size:12px;color:var(--gray);margin-top:2px}
+.sheet-cancel{margin-top:10px;width:100%;padding:13px;border:1.5px solid var(--border);border-radius:12px;background:#fff;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--gray);cursor:pointer}
+/* QR */
+.qr-video-wrap{position:relative;width:100%;border-radius:16px;overflow:hidden;background:#000;margin:12px 0}
+.qr-video-wrap video{width:100%;display:block;max-height:260px;object-fit:cover}
+.qr-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.qr-frame{width:180px;height:180px;border:3px solid var(--purple);border-radius:16px;box-shadow:0 0 0 9999px rgba(0,0,0,.45)}
+.qr-hint{font-size:13px;color:var(--gray);text-align:center;margin-bottom:4px}
+.qr-result{background:var(--purple-pale);border:1.5px solid var(--purple);border-radius:10px;padding:12px 14px;margin-top:10px;font-size:13px;white-space:pre-line;display:none;color:var(--gray-dark);line-height:1.6}
+.qr-result.show{display:block}
+.qr-result strong{color:var(--purple);display:block;margin-bottom:4px}
+.btn-use-contact{width:100%;margin-top:10px;padding:12px;background:var(--purple);color:#fff;border:none;border-radius:10px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;display:none}
+canvas#qrCanvas{display:none}
+/* Print */
+@media print{
+  body{background:#fff;padding:0}
+  .header,.filters,.add-section,.fab-bar,.sheet-overlay,.toast{display:none!important}
+  .list-section{padding:0}
+  .card{box-shadow:none;border:1px solid #ddd;margin-bottom:8px;page-break-inside:avoid}
+  .card-expand{display:block!important}
+  .contact-section{display:block!important}
+  .card-actions{display:none}
+  #printHeader{display:block!important}
+}
+#printHeader{display:none;font-family:'Syne',sans-serif;font-size:20px;font-weight:800;padding:20px 0 10px;border-bottom:2px solid #1a6b3c;margin-bottom:16px;color:#1a6b3c}
+@media(min-width:480px){body{max-width:480px;margin:0 auto}.fab-bar{left:50%;right:auto;width:480px;transform:translateX(-50%)}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div><h1><span>Checklist</span>Expozanți Târg</h1></div>
+    <div class="progress-ring">
+      <svg width="56" height="56" viewBox="0 0 56 56">
+        <circle class="bg" cx="28" cy="28" r="23"/>
+        <circle class="bar" id="progressBar" cx="28" cy="28" r="23" stroke-dasharray="144.5" stroke-dashoffset="144.5"/>
+      </svg>
+      <div class="label"><span id="progressPct">0%</span><small>vizitați</small></div>
+    </div>
+  </div>
+  <div class="stats-row">
+    <div class="stat-chip">📋 <span id="statTotal">0</span> total</div>
+    <div class="stat-chip">✅ <span id="statVisited">0</span> vizitați</div>
+    <div class="stat-chip">🔴 <span id="statAbsent">0</span> absenți</div>
+    <div class="stat-chip">⏳ <span id="statPending">0</span> rămași</div>
+  </div>
+</div>
+
+<div class="filters">
+  <button class="filter-btn active" onclick="setFilter('all',this)">Toți</button>
+  <button class="filter-btn" onclick="setFilter('pending',this)">🟡 De vizitat</button>
+  <button class="filter-btn" onclick="setFilter('visited',this)">✅ Vizitați</button>
+  <button class="filter-btn" onclick="setFilter('scheduled',this)">⏳ Programați</button>
+  <button class="filter-btn" onclick="setFilter('absent',this)">🔴 Absenți</button>
+  <button class="filter-btn" onclick="setFilter('high',this)">⚡ Prioritate</button>
+</div>
+
+<div class="add-section">
+  <button class="add-toggle" id="addToggle" onclick="toggleForm()">
+    <div class="plus">+</div>Adaugă expozant
+  </button>
+  <div class="add-form" id="addForm">
+    <div class="form-row">
+      <div class="form-field" style="flex:2"><label>Nume expozant *</label><input type="text" id="fName" placeholder="ex: AgriTech SRL"></div>
+      <div class="form-field" style="flex:1"><label>Stand</label><input type="text" id="fStand" placeholder="A-12"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-field"><label>Sector</label><input type="text" id="fSector" placeholder="ex: Drone, Semințe…"></div>
+      <div class="form-field"><label>Prioritate</label>
+        <select id="fPrio"><option value="normal">Normală</option><option value="high">🔴 Înaltă</option><option value="low">Scăzută</option></select>
+      </div>
+    </div>
+    <button class="btn-add" onclick="addExhibitor()">+ Adaugă în listă</button>
+  </div>
+</div>
+
+<div id="printHeader">🌾 Checklist Expozanți Târg — Raport Final</div>
+<div class="list-section" id="listSection"></div>
+
+<div class="fab-bar">
+  <button class="fab-sort" onclick="sortByPriority()">⬆️</button>
+  <button class="fab-save" id="saveBtn" onclick="saveData()">💾 Salvează</button>
+  <button class="fab-sort" onclick="openSheet('exportSheet')">📤</button>
+</div>
+
+<!-- STATUS SHEET -->
+<div class="sheet-overlay" id="statusSheet" onclick="closeSheetOutside(event,'statusSheet')">
+  <div class="bottom-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Schimbă statusul</div>
+    <div class="status-options">
+      <div class="status-option" data-val="visited" onclick="setStatus('visited')"><span class="so-icon">✅</span><div><div class="so-label">Vizitat</div><div class="so-desc">Stand vizitat cu succes</div></div></div>
+      <div class="status-option" data-val="scheduled" onclick="setStatus('scheduled')"><span class="so-icon">⏳</span><div><div class="so-label">Programat</div><div class="so-desc">Întâlnire stabilită</div></div></div>
+      <div class="status-option" data-val="absent" onclick="setStatus('absent')"><span class="so-icon">🔴</span><div><div class="so-label">Absent / Închis</div><div class="so-desc">Standul nu a putut fi vizitat</div></div></div>
+      <div class="status-option" data-val="pending" onclick="setStatus('pending')"><span class="so-icon">🟡</span><div><div class="so-label">De vizitat</div><div class="so-desc">Resetează la status inițial</div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- EXPORT SHEET -->
+<div class="sheet-overlay" id="exportSheet" onclick="closeSheetOutside(event,'exportSheet')">
+  <div class="bottom-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Exportă datele</div>
+    <div class="sheet-sub">Alege formatul în care vrei să salvezi lista</div>
+    <div class="export-options">
+      <button class="export-option excel" onclick="exportExcel()"><span class="export-icon">📊</span><div><div class="export-label">Excel (.xlsx)</div><div class="export-desc">Tabel complet cu toate detaliile și contactele</div></div></button>
+      <button class="export-option pdf" onclick="exportPDF()"><span class="export-icon">📄</span><div><div class="export-label">PDF (Print)</div><div class="export-desc">Raport formatat pentru tipărit sau email</div></div></button>
+    </div>
+    <button class="sheet-cancel" onclick="closeSheet('exportSheet')">Anulează</button>
+  </div>
+</div>
+
+<!-- QR SCANNER SHEET -->
+<div class="sheet-overlay" id="qrSheet" onclick="closeSheetOutside(event,'qrSheet')">
+  <div class="bottom-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">📷 Scanează cod QR</div>
+    <div class="qr-hint">Îndreaptă camera spre codul QR de pe cartea de vizită</div>
+    <div class="qr-video-wrap">
+      <video id="qrVideo" autoplay playsinline muted></video>
+      <div class="qr-overlay"><div class="qr-frame"></div></div>
+    </div>
+    <canvas id="qrCanvas"></canvas>
+    <div class="qr-result" id="qrResult"><strong>Contact detectat:</strong><span id="qrResultText"></span></div>
+    <button class="btn-use-contact" id="btnUseContact" onclick="applyScannedContact()">✓ Folosește acest contact</button>
+    <button class="sheet-cancel" onclick="stopQR()">Închide camera</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let exhibitors=[],filter='all',activeId=null,qrStream=null,qrScannedData=null,qrInterval=null;
+const STORAGE_KEY='checklist_targ_v2';
+
+function loadData(){
+  try{const r=localStorage.getItem(STORAGE_KEY);if(r)exhibitors=JSON.parse(r);}catch(e){}
+  if(!exhibitors.length){
+    exhibitors=[
+      {id:uid(),name:'AgriTech Solutions',stand:'A-12',sector:'Tehnologie',priority:'high',status:'pending',note:'',material:false,time:'',cName:'Ion Popescu',cPhone:'',cEmail:''},
+      {id:uid(),name:'SoilSense Romania',stand:'B-05',sector:'Analize Sol',priority:'high',status:'pending',note:'',material:false,time:'',cName:'Maria Ionescu',cPhone:'',cEmail:''},
+      {id:uid(),name:'AgroFert SRL',stand:'C-22',sector:'Fertilizanți',priority:'normal',status:'pending',note:'',material:false,time:'',cName:'',cPhone:'',cEmail:''},
+      {id:uid(),name:'DroneAg Europe',stand:'A-08',sector:'Drone / UAV',priority:'high',status:'pending',note:'',material:false,time:'',cName:'',cPhone:'',cEmail:''},
+      {id:uid(),name:'GreenCrop Seeds',stand:'D-14',sector:'Semințe',priority:'normal',status:'pending',note:'',material:false,time:'',cName:'Ana Dumitrescu',cPhone:'',cEmail:''},
+    ];
+  }
+  exhibitors=exhibitors.map(e=>({cName:'',cPhone:'',cEmail:'',...e}));
+}
+
+function saveData(silent){
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(exhibitors));
+  if(!silent){
+    const b=document.getElementById('saveBtn');
+    b.classList.add('saved');b.textContent='✓ Salvat!';
+    showToast('Date salvate ✓');
+    setTimeout(()=>{b.classList.remove('saved');b.innerHTML='💾 Salvează';},2000);
+  }
+}
+
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+
+function render(){
+  updateStats();
+  const list=document.getElementById('listSection');
+  let items=[...exhibitors];
+  if(filter==='pending')   items=items.filter(e=>e.status==='pending');
+  if(filter==='visited')   items=items.filter(e=>e.status==='visited');
+  if(filter==='absent')    items=items.filter(e=>e.status==='absent');
+  if(filter==='scheduled') items=items.filter(e=>e.status==='scheduled');
+  if(filter==='high')      items=items.filter(e=>e.priority==='high');
+  if(!items.length){list.innerHTML=`<div class="empty-state"><div class="icon">🌾</div>Niciun expozant în această categorie</div>`;return;}
+  list.innerHTML=items.map((e,i)=>cardHTML(e,i+1)).join('');
+  items.forEach(e=>attachListeners(e));
+}
+
+function cardHTML(e,idx){
+  const sc={visited:'visited',absent:'absent',scheduled:'scheduled',pending:''}[e.status]||'';
+  const si={visited:'✅',absent:'🔴',scheduled:'⏳',pending:'🟡'}[e.status];
+  const sl={visited:'Vizitat',absent:'Absent',scheduled:'Programat',pending:'De vizitat'}[e.status];
+  const hasC=e.cName||e.cPhone||e.cEmail;
+  return `<div class="card status-${e.status}${e.priority==='high'?' priority-high':''}" id="card_${e.id}">
+  <div class="card-header">
+    <span class="card-index">${idx}.</span>
+    <div class="card-info">
+      <div class="card-name">${esc(e.name)}</div>
+      <div class="card-meta">
+        ${e.sector?`<span class="tag sector">${esc(e.sector)}</span>`:''}
+        ${e.stand?`<span class="tag stand">📍${esc(e.stand)}</span>`:''}
+        ${e.priority==='high'?'<span class="tag prio-high">⚡ Prioritate</span>':''}
+        ${hasC?'<span class="tag has-contact">👤 Contact</span>':''}
+      </div>
+    </div>
+    <button class="card-status-btn" onclick="openStatus('${e.id}')">
+      <div class="status-circle ${sc}">${si}</div>
+      <span class="status-label">${sl}</span>
+    </button>
+  </div>
+  <div class="card-body">
+    ${e.cName?`<div class="card-contact-line">👤 ${esc(e.cName)}</div>`:''}
+    ${e.cPhone?`<div class="card-contact-line">📞 <a href="tel:${esc(e.cPhone)}" style="color:var(--blue);text-decoration:none">${esc(e.cPhone)}</a></div>`:''}
+    ${e.cEmail?`<div class="card-contact-line">✉️ <a href="mailto:${esc(e.cEmail)}" style="color:var(--blue);text-decoration:none">${esc(e.cEmail)}</a></div>`:''}
+    ${e.time?`<div class="card-contact-line">🕐 ${esc(e.time)}</div>`:''}
+    ${e.material?'<div class="card-contact-line">📁 Material primit</div>':''}
+    ${e.note?`<div class="note-preview">📝 ${esc(e.note)}</div>`:''}
+    <div class="card-actions">
+      <button class="action-btn" onclick="toggleExpand('${e.id}')">✏️ Notițe</button>
+      <button class="action-btn contact-btn" onclick="openContactSection('${e.id}')">👤 Contact</button>
+      <button class="action-btn danger" onclick="deleteExhibitor('${e.id}')">🗑</button>
+    </div>
+  </div>
+  <div class="card-expand" id="expand_${e.id}">
+    <span class="expand-label">Notițe / Follow-up</span>
+    <textarea class="note-area" id="note_${e.id}" placeholder="Produse de interes, acțiuni follow-up...">${esc(e.note)}</textarea>
+    <div class="time-field">
+      <span class="expand-label" style="margin-bottom:4px">Ora vizitei</span>
+      <input type="time" id="time_${e.id}" value="${esc(e.time)}">
+    </div>
+    <div class="material-row">
+      <label>📁 Material primit <input type="checkbox" class="toggle-sw" id="mat_${e.id}"${e.material?' checked':''}></label>
+    </div>
+    <div class="contact-section" id="cs_${e.id}" style="display:none">
+      <div class="contact-section-title">👤 Date de contact</div>
+      <div class="contact-fields">
+        <div class="contact-field-row"><span class="cf-icon">👤</span><input type="text" id="cName_${e.id}" placeholder="Nume și prenume" value="${esc(e.cName)}"></div>
+        <div class="contact-field-row"><span class="cf-icon">📞</span><input type="tel" id="cPhone_${e.id}" placeholder="Telefon" value="${esc(e.cPhone)}"></div>
+        <div class="contact-field-row"><span class="cf-icon">✉️</span><input type="email" id="cEmail_${e.id}" placeholder="Email" value="${esc(e.cEmail)}"></div>
+      </div>
+      <button class="btn-scan-qr" onclick="openQR('${e.id}')">📷 Scanează cod QR / vCard</button>
+    </div>
+  </div>
+</div>`;
+}
+
+function attachListeners(e){
+  const ids=['note','time','cName','cPhone','cEmail'];
+  const update=()=>{
+    const ex=exhibitors.find(x=>x.id===e.id);if(!ex)return;
+    const n=document.getElementById('note_'+e.id);if(n)ex.note=n.value;
+    const t=document.getElementById('time_'+e.id);if(t)ex.time=t.value;
+    const m=document.getElementById('mat_'+e.id);if(m)ex.material=m.checked;
+    const cn=document.getElementById('cName_'+e.id);if(cn)ex.cName=cn.value;
+    const cp=document.getElementById('cPhone_'+e.id);if(cp)ex.cPhone=cp.value;
+    const ce=document.getElementById('cEmail_'+e.id);if(ce)ex.cEmail=ce.value;
+  };
+  ['note_','time_','cName_','cPhone_','cEmail_'].forEach(p=>{
+    const el=document.getElementById(p+e.id);
+    if(el)el.addEventListener('input',update);
+  });
+  const m=document.getElementById('mat_'+e.id);
+  if(m)m.addEventListener('change',update);
+}
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+function updateStats(){
+  const t=exhibitors.length,v=exhibitors.filter(e=>e.status==='visited').length,
+        a=exhibitors.filter(e=>e.status==='absent').length,
+        p=exhibitors.filter(e=>e.status!=='visited'&&e.status!=='absent').length,
+        pct=t?Math.round(v/t*100):0;
+  document.getElementById('statTotal').textContent=t;
+  document.getElementById('statVisited').textContent=v;
+  document.getElementById('statAbsent').textContent=a;
+  document.getElementById('statPending').textContent=p;
+  document.getElementById('progressPct').textContent=pct+'%';
+  document.getElementById('progressBar').style.strokeDashoffset=144.5-(144.5*pct/100);
+}
+
+function addExhibitor(){
+  const name=document.getElementById('fName').value.trim();
+  if(!name){showToast('Introdu numele expozantului!');return;}
+  exhibitors.push({id:uid(),name,stand:document.getElementById('fStand').value.trim(),
+    sector:document.getElementById('fSector').value.trim(),
+    priority:document.getElementById('fPrio').value,
+    status:'pending',note:'',material:false,time:'',cName:'',cPhone:'',cEmail:''});
+  ['fName','fStand','fSector'].forEach(i=>document.getElementById(i).value='');
+  saveData(true);render();showToast('Expozant adăugat ✓');
+}
+
+function deleteExhibitor(id){
+  if(!confirm('Ștergi acest expozant?'))return;
+  exhibitors=exhibitors.filter(e=>e.id!==id);
+  saveData(true);render();
+}
+
+function toggleExpand(id){
+  const el=document.getElementById('expand_'+id);
+  el.classList.toggle('open');
+}
+
+function openContactSection(id){
+  const expand=document.getElementById('expand_'+id);
+  const cs=document.getElementById('cs_'+id);
+  expand.classList.add('open');
+  if(cs)cs.style.display='block';
+  setTimeout(()=>cs&&cs.scrollIntoView({behavior:'smooth',block:'nearest'}),50);
+}
+
+function setFilter(f,btn){
+  filter=f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');render();
+}
+
+function sortByPriority(){
+  const po={high:0,normal:1,low:2},so={pending:0,scheduled:1,visited:2,absent:3};
+  exhibitors.sort((a,b)=>so[a.status]!==so[b.status]?so[a.status]-so[b.status]:(po[a.priority]||1)-(po[b.priority]||1));
+  render();showToast('Sortat după prioritate ↑');
+}
+
+function toggleForm(){
+  document.getElementById('addForm').classList.toggle('open');
+  document.getElementById('addToggle').classList.toggle('open');
+}
+
+function openSheet(id){document.getElementById(id).classList.add('open');}
+function closeSheet(id){document.getElementById(id).classList.remove('open');}
+function closeSheetOutside(e,id){if(e.target===document.getElementById(id))closeSheet(id);}
+function openStatus(id){activeId=id;openSheet('statusSheet');}
+function setStatus(val){
+  const ex=exhibitors.find(e=>e.id===activeId);
+  if(ex)ex.status=val;
+  closeSheet('statusSheet');saveData(true);render();
+}
+
+// QR SCANNER
+function openQR(id){
+  activeId=id;qrScannedData=null;
+  document.getElementById('qrResult').classList.remove('show');
+  document.getElementById('qrResultText').textContent='';
+  document.getElementById('btnUseContact').style.display='none';
+  openSheet('qrSheet');
+  startCamera();
+}
+
+function startCamera(){
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){showToast('Camera nu este disponibilă');return;}
+  navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}})
+    .then(stream=>{
+      qrStream=stream;
+      const v=document.getElementById('qrVideo');
+      v.srcObject=stream;v.play();
+      qrInterval=setInterval(scanFrame,250);
+    })
+    .catch(()=>showToast('Nu s-a putut accesa camera. Verifică permisiunile Safari.'));
+}
+
+function scanFrame(){
+  const v=document.getElementById('qrVideo');
+  if(v.readyState!==v.HAVE_ENOUGH_DATA)return;
+  const c=document.getElementById('qrCanvas');
+  c.width=v.videoWidth;c.height=v.videoHeight;
+  const ctx=c.getContext('2d');
+  ctx.drawImage(v,0,0,c.width,c.height);
+  const img=ctx.getImageData(0,0,c.width,c.height);
+  const code=jsQR(img.data,img.width,img.height);
+  if(code)handleQRResult(code.data);
+}
+
+function handleQRResult(data){
+  clearInterval(qrInterval);stopCamera();
+  qrScannedData=parseVCard(data);
+  document.getElementById('qrResultText').textContent=
+    `Nume: ${qrScannedData.name||'—'}\nTelefon: ${qrScannedData.phone||'—'}\nEmail: ${qrScannedData.email||'—'}`;
+  document.getElementById('qrResult').classList.add('show');
+  document.getElementById('btnUseContact').style.display='block';
+  showToast('Cod QR detectat ✓');
+}
+
+function parseVCard(raw){
+  const r={name:'',phone:'',email:''};
+  if(raw.includes('BEGIN:VCARD')){
+    raw.split(/\r?\n/).forEach(l=>{
+      if(/^FN:/i.test(l))    r.name =l.replace(/^FN:/i,'').trim();
+      if(/^N:/i.test(l)&&!r.name){const p=l.replace(/^N:/i,'').split(';');r.name=((p[1]||'')+' '+(p[0]||'')).trim();}
+      if(/^TEL/i.test(l))   r.phone=l.replace(/^TEL[^:]*:/i,'').trim();
+      if(/^EMAIL/i.test(l)) r.email=l.replace(/^EMAIL[^:]*:/i,'').trim();
+    });
+  } else {
+    const em=raw.match(/[\w.+-]+@[\w-]+\.[a-z]{2,}/i);
+    const ph=raw.match(/[\+\d][\d\s\-\(\)]{7,}/);
+    if(em)r.email=em[0];
+    if(ph)r.phone=ph[0].trim();
+    const fl=raw.split(/\r?\n/)[0];
+    if(fl&&fl.length<60&&!fl.includes('@'))r.name=fl;
+    if(!r.name&&!r.email&&!r.phone)r.name=raw.slice(0,80);
+  }
+  return r;
+}
+
+function applyScannedContact(){
+  if(!qrScannedData||!activeId)return;
+  const ex=exhibitors.find(e=>e.id===activeId);
+  if(ex){
+    if(qrScannedData.name) ex.cName=qrScannedData.name;
+    if(qrScannedData.phone)ex.cPhone=qrScannedData.phone;
+    if(qrScannedData.email)ex.cEmail=qrScannedData.email;
+  }
+  stopQR();saveData(true);render();
+  setTimeout(()=>openContactSection(activeId),150);
+  showToast('Contact salvat din QR ✓');
+}
+
+function stopCamera(){
+  if(qrStream){qrStream.getTracks().forEach(t=>t.stop());qrStream=null;}
+  clearInterval(qrInterval);qrInterval=null;
+}
+
+function stopQR(){stopCamera();closeSheet('qrSheet');}
+
+function exportExcel(){
+  closeSheet('exportSheet');
+  const sl={visited:'Vizitat ✅',absent:'Absent 🔴',scheduled:'Programat ⏳',pending:'De vizitat 🟡'};
+  const pl={high:'Înaltă 🔴',normal:'Medie',low:'Scăzută'};
+  const rows=exhibitors.map((e,i)=>({'#':i+1,'Expozant':e.name,'Stand':e.stand||'','Sector':e.sector||'',
+    'Prioritate':pl[e.priority]||e.priority,'Status':sl[e.status]||e.status,
+    'Nume Contact':e.cName||'','Telefon':e.cPhone||'','Email':e.cEmail||'',
+    'Ora Vizitei':e.time||'','Material Primit':e.material?'Da':'Nu','Note':e.note||''}));
+  const ws=XLSX.utils.json_to_sheet(rows);
+  ws['!cols']=[{wch:4},{wch:24},{wch:9},{wch:16},{wch:12},{wch:16},{wch:22},{wch:16},{wch:28},{wch:10},{wch:14},{wch:36}];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Expozanți');
+  const t=exhibitors.length,v=exhibitors.filter(e=>e.status==='visited').length;
+  const ws2=XLSX.utils.json_to_sheet([
+    {'Indicator':'Total expozanți','Valoare':t},
+    {'Indicator':'Vizitați ✅','Valoare':v},
+    {'Indicator':'Absenți 🔴','Valoare':exhibitors.filter(e=>e.status==='absent').length},
+    {'Indicator':'De vizitat 🟡','Valoare':exhibitors.filter(e=>e.status==='pending').length},
+    {'Indicator':'Programați ⏳','Valoare':exhibitors.filter(e=>e.status==='scheduled').length},
+    {'Indicator':'Materiale primite','Valoare':exhibitors.filter(e=>e.material).length},
+    {'Indicator':'Contacte salvate','Valoare':exhibitors.filter(e=>e.cName||e.cPhone||e.cEmail).length},
+    {'Indicator':'% Completare','Valoare':t?Math.round(v/t*100)+'%':'0%'},
+  ]);
+  ws2['!cols']=[{wch:22},{wch:12}];
+  XLSX.utils.book_append_sheet(wb,ws2,'Sumar');
+  XLSX.writeFile(wb,`Checklist_Targ_${new Date().toISOString().slice(0,10)}.xlsx`);
+  showToast('Excel descărcat ✓');
+}
+
+function exportPDF(){
+  closeSheet('exportSheet');
+  document.querySelectorAll('.card-expand').forEach(el=>el.classList.add('open'));
+  document.querySelectorAll('[id^="cs_"]').forEach(el=>el.style.display='block');
+  setTimeout(()=>{window.print();
+    setTimeout(()=>{
+      document.querySelectorAll('.card-expand').forEach(el=>el.classList.remove('open'));
+      document.querySelectorAll('[id^="cs_"]').forEach(el=>el.style.display='none');
+    },1500);
+  },200);
+  showToast('Se deschide dialogul de printare…');
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2400);
+}
+
+loadData();render();
+</script>
+</body>
+</html>
