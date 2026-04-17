@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--green:#1a6b3c;--green-light:#2d9c5a;--green-pale:#e8f5ee;--green-mid:#c3e6d0;--amber:#d97706;--amber-pale:#fef3c7;--red:#c0392b;--red-pale:#fdecea;--blue:#1e6fa8;--blue-pale:#e8f1f8;--purple:#6d28d9;--purple-pale:#ede9fe;--gray-dark:#1c1c1e;--gray:#6b7280;--gray-light:#f4f4f5;--white:#fff;--border:#e5e7eb;--shadow:0 2px 12px rgba(0,0,0,.08);--radius:16px;--radius-sm:10px}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -263,6 +264,23 @@ canvas#qrCanvas{display:none}
 <div class="toast" id="toast"></div>
 
 <script>
+  const supabaseUrl = 'https://omemmjiiatjdpmpbuey.supabase.co';
+const supabaseKey = 'sb_publishable_Am44_fgr0esBVsvREXohbA_kjn76Cgq';
+
+const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+async function testSupabase() {
+  const { data, error } = await supabaseClient
+    .from('Expozanti') // sau 'expozanti' dacă ai făcut cu litere mici
+    .insert([
+      { nume: 'Test Sync', categorie: 'Demo', stand: 'A-01', status: 'nou', prioritate: false }
+    ]);
+
+  console.log('data:', data);
+  console.log('error:', error);
+}
+
+testSupabase();
 let exhibitors=[],filter='all',activeId=null,qrStream=null,qrScannedData=null,qrInterval=null;
 const STORAGE_KEY='checklist_targ_v2';
 
