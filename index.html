@@ -269,32 +269,76 @@ const supabaseKey = 'sb_publishable_Am44_fgr0esBVsvREXohbA_kjn76Cgq';
 const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
 let exhibitors=[],filter='all',activeId=null,qrStream=null,qrScannedData=null,qrInterval=null;
-const STORAGE_KEY='checklist_targ_v2';
+async function loadData() {
+  const { data, error } = await supabaseClient
+    .from('Expozanti')
+    .select('*')
+    .order('id', { ascending: true });
 
-function loadData(){
-  try{const r=localStorage.getItem(STORAGE_KEY);if(r)exhibitors=JSON.parse(r);}catch(e){}
-  if(!exhibitors.length){
-    exhibitors=[
-      {id:uid(),name:'AgriTech Solutions',stand:'A-12',sector:'Tehnologie',priority:'high',status:'pending',note:'',material:false,time:'',cName:'Ion Popescu',cPhone:'',cEmail:''},
-      {id:uid(),name:'SoilSense Romania',stand:'B-05',sector:'Analize Sol',priority:'high',status:'pending',note:'',material:false,time:'',cName:'Maria Ionescu',cPhone:'',cEmail:''},
-      {id:uid(),name:'AgroFert SRL',stand:'C-22',sector:'Fertilizanți',priority:'normal',status:'pending',note:'',material:false,time:'',cName:'',cPhone:'',cEmail:''},
-      {id:uid(),name:'DroneAg Europe',stand:'A-08',sector:'Drone / UAV',priority:'high',status:'pending',note:'',material:false,time:'',cName:'',cPhone:'',cEmail:''},
-      {id:uid(),name:'GreenCrop Seeds',stand:'D-14',sector:'Semințe',priority:'normal',status:'pending',note:'',material:false,time:'',cName:'Ana Dumitrescu',cPhone:'',cEmail:''},
-    ];
+  if (error) {
+    console.log('loadData error:', error);
+    showToast('Eroare la încărcarea datelor');
+    exhibitors = [];
+    return;
   }
-  exhibitors=exhibitors.map(e=>({cName:'',cPhone:'',cEmail:'',...e}));
+
+  exhibitors = (data || []).map(row => ({
+    id: String(row.id),
+    name: row.Nume || '',
+    stand: row.Stand || '',
+    sector: row.Categorie || '',
+    priority: row.Prioritate || 'normal',
+    status: row.Status || 'pending',
+    note: row.Nota || '',
+    material: row.Material || false,
+    time: row.Ora || '',
+    cName: row.NumeContact || '',
+    cPhone: row.Telefon || '',
+    cEmail: row.Email || ''
+  }));
 }
 
-function saveData(silent){
-  localStorage.setItem(STORAGE_KEY,JSON.stringify(exhibitors));
-  if(!silent){
-    const b=document.getElementById('saveBtn');
-    b.classList.add('saved');b.textContent='✓ Salvat!';
-    showToast('Date salvate ✓');
-    setTimeout(()=>{b.classList.remove('saved');b.innerHTML='💾 Salvează';},2000);
+async function saveData(silent){
+  for (const ex of exhibitors) {
+    const payload = {
+      Nume: ex.name || '',
+      Categorie: ex.sector || '',
+      Stand: ex.stand || '',
+      Status: ex.status || 'pending',
+      Prioritate: ex.priority || 'normal',
+      Nota: ex.note || '',
+      Material: !!ex.material,
+      Ora: ex.time || '',
+      NumeContact: ex.cName || '',
+      Telefon: ex.cPhone || '',
+      Email: ex.cEmail || ''
+    };
+
+    const idNum = Number(ex.id);
+
+    if (!Number.isNaN(idNum)) {
+      const { error } = await supabaseClient
+        .from('Expozanti')
+        .update(payload)
+        .eq('id', idNum);
+
+      if (error) {
+        console.log('save update error:', error);
+      }
+    }
+  }
+
+  if (!silent) {
+    const b = document.getElementById('saveBtn');
+    b.classList.add('saved');
+    b.textContent = '✓ Salvat!';
+    showToast('Date salvate în cloud ✓');
+    setTimeout(() => {
+      b.classList.remove('saved');
+      b.innerHTML = '💾 Salvează';
+    }, 2000);
   }
 }
-
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 
 function render(){
@@ -403,21 +447,77 @@ function updateStats(){
   document.getElementById('progressBar').style.strokeDashoffset=144.5-(144.5*pct/100);
 }
 
-function addExhibitor(){
+async function addExhibitor(){
   const name=document.getElementById('fName').value.trim();
-  if(!name){showToast('Introdu numele expozantului!');return;}
-  exhibitors.push({id:uid(),name,stand:document.getElementById('fStand').value.trim(),
-    sector:document.getElementById('fSector').value.trim(),
-    priority:document.getElementById('fPrio').value,
-    status:'pending',note:'',material:false,time:'',cName:'',cPhone:'',cEmail:''});
+  if(!name){
+    showToast('Introdu numele expozantului!');
+    return;
+  }
+
+  const payload = {
+    Nume: name,
+    Stand: document.getElementById('fStand').value.trim(),
+    Categorie: document.getElementById('fSector').value.trim(),
+    Prioritate: document.getElementById('fPrio').value,
+    Status: 'pending',
+    Nota: '',
+    Material: false,
+    Ora: '',
+    NumeContact: '',
+    Telefon: '',
+    Email: ''
+  };
+
+  const { data, error } = await supabaseClient
+    .from('Expozanti')
+    .insert([payload])
+    .select()
+    .single();
+
+  if (error) {
+    console.log('addExhibitor error:', error);
+    showToast('Eroare la salvare');
+    return;
+  }
+
+  exhibitors.push({
+    id: String(data.id),
+    name: data.Nume || '',
+    stand: data.Stand || '',
+    sector: data.Categorie || '',
+    priority: data.Prioritate || 'normal',
+    status: data.Status || 'pending',
+    note: data.Nota || '',
+    material: data.Material || false,
+    time: data.Ora || '',
+    cName: data.NumeContact || '',
+    cPhone: data.Telefon || '',
+    cEmail: data.Email || ''
+  });
+
   ['fName','fStand','fSector'].forEach(i=>document.getElementById(i).value='');
-  saveData(true);render();showToast('Expozant adăugat ✓');
+  document.getElementById('fPrio').value='normal';
+
+  render();
+  showToast('Expozant adăugat ✓');
 }
 
-function deleteExhibitor(id){
-  if(!confirm('Ștergi acest expozant?'))return;
-  exhibitors=exhibitors.filter(e=>e.id!==id);
-  saveData(true);render();
+async function deleteExhibitor(id){
+  if(!confirm('Ștergi acest expozant?')) return;
+
+  const { error } = await supabaseClient
+    .from('Expozanti')
+    .delete()
+    .eq('id', Number(id));
+
+  if (error) {
+    console.log('deleteExhibitor error:', error);
+    showToast('Eroare la ștergere');
+    return;
+  }
+
+  exhibitors = exhibitors.filter(e => e.id !== id);
+  render();
 }
 
 function toggleExpand(id){
@@ -454,10 +554,25 @@ function openSheet(id){document.getElementById(id).classList.add('open');}
 function closeSheet(id){document.getElementById(id).classList.remove('open');}
 function closeSheetOutside(e,id){if(e.target===document.getElementById(id))closeSheet(id);}
 function openStatus(id){activeId=id;openSheet('statusSheet');}
-function setStatus(val){
+async function setStatus(val){
   const ex=exhibitors.find(e=>e.id===activeId);
-  if(ex)ex.status=val;
-  closeSheet('statusSheet');saveData(true);render();
+  if(!ex) return;
+
+  ex.status=val;
+
+  const { error } = await supabaseClient
+    .from('Expozanti')
+    .update({ Status: val })
+    .eq('id', Number(activeId));
+
+  if (error) {
+    console.log('setStatus error:', error);
+    showToast('Eroare la actualizare status');
+    return;
+  }
+
+  closeSheet('statusSheet');
+  render();
 }
 
 // QR SCANNER
@@ -593,7 +708,12 @@ function showToast(msg){
   setTimeout(()=>t.classList.remove('show'),2400);
 }
 
-loadData();render();
+async function initializeApp() {
+  await loadData();
+  render();
+}
+
+initializeApp();
 </script>
 </body>
 </html>
