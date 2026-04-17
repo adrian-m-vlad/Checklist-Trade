@@ -90,7 +90,6 @@ body{font-family:'DM Sans',sans-serif;background:#f0f4f1;color:var(--gray-dark);
 .time-field{margin-top:10px}
 .time-field input{border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;font-family:'DM Mono',monospace;background:var(--gray-light);color:var(--gray-dark);outline:none}
 .time-field input:focus{border-color:var(--green);background:#fff}
-/* Contact section */
 .contact-section{margin-top:14px;padding-top:14px;border-top:1.5px dashed #c4b5fd}
 .contact-section-title{font-size:11px;font-weight:700;color:var(--purple);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;display:flex;align-items:center;gap:6px}
 .contact-fields{display:flex;flex-direction:column;gap:8px}
@@ -100,15 +99,12 @@ body{font-family:'DM Sans',sans-serif;background:#f0f4f1;color:var(--gray-dark);
 .contact-field-row input:focus{border-color:var(--purple);background:#fff}
 .btn-scan-qr{width:100%;margin-top:12px;padding:12px;border:2px dashed var(--purple);border-radius:10px;background:var(--purple-pale);color:var(--purple);font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
 .btn-scan-qr:active{background:#ddd6fe}
-/* FAB */
 .fab-bar{position:fixed;bottom:0;left:0;right:0;padding:12px 16px 28px;background:rgba(255,255,255,.92);backdrop-filter:blur(12px);border-top:1px solid var(--border);display:flex;gap:10px;z-index:100;max-width:480px;margin:0 auto}
 .fab-sort{flex-shrink:0;padding:13px 14px;border-radius:12px;border:1.5px solid var(--border);background:#fff;font-size:16px;cursor:pointer}
 .fab-save{flex:1;padding:13px;border-radius:12px;border:none;background:var(--green);color:#fff;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:background .15s}
 .fab-save:active,.fab-save.saved{background:#145530}
-/* Toast */
 .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:var(--gray-dark);color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:500;z-index:999;opacity:0;transition:opacity .3s;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.2)}
 .toast.show{opacity:1}
-/* Bottom sheets */
 .sheet-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;backdrop-filter:blur(3px);align-items:flex-end;justify-content:center}
 .sheet-overlay.open{display:flex}
 .bottom-sheet{background:#fff;border-radius:24px 24px 0 0;width:100%;max-width:480px;padding:16px 16px 44px;animation:slideUp .25s ease;max-height:90vh;overflow-y:auto}
@@ -132,7 +128,6 @@ body{font-family:'DM Sans',sans-serif;background:#f0f4f1;color:var(--gray-dark);
 .export-label{font-weight:700;font-size:15px;font-family:'Syne',sans-serif}
 .export-desc{font-size:12px;color:var(--gray);margin-top:2px}
 .sheet-cancel{margin-top:10px;width:100%;padding:13px;border:1.5px solid var(--border);border-radius:12px;background:#fff;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--gray);cursor:pointer}
-/* QR */
 .qr-video-wrap{position:relative;width:100%;border-radius:16px;overflow:hidden;background:#000;margin:12px 0}
 .qr-video-wrap video{width:100%;display:block;max-height:260px;object-fit:cover}
 .qr-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
@@ -143,7 +138,6 @@ body{font-family:'DM Sans',sans-serif;background:#f0f4f1;color:var(--gray-dark);
 .qr-result strong{color:var(--purple);display:block;margin-bottom:4px}
 .btn-use-contact{width:100%;margin-top:10px;padding:12px;background:var(--purple);color:#fff;border:none;border-radius:10px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;display:none}
 canvas#qrCanvas{display:none}
-/* Print */
 @media print{
   body{background:#fff;padding:0}
   .header,.filters,.add-section,.fab-bar,.sheet-overlay,.toast{display:none!important}
@@ -216,7 +210,6 @@ canvas#qrCanvas{display:none}
   <button class="fab-sort" onclick="openSheet('exportSheet')">📤</button>
 </div>
 
-<!-- STATUS SHEET -->
 <div class="sheet-overlay" id="statusSheet" onclick="closeSheetOutside(event,'statusSheet')">
   <div class="bottom-sheet">
     <div class="sheet-handle"></div>
@@ -230,7 +223,6 @@ canvas#qrCanvas{display:none}
   </div>
 </div>
 
-<!-- EXPORT SHEET -->
 <div class="sheet-overlay" id="exportSheet" onclick="closeSheetOutside(event,'exportSheet')">
   <div class="bottom-sheet">
     <div class="sheet-handle"></div>
@@ -244,7 +236,6 @@ canvas#qrCanvas{display:none}
   </div>
 </div>
 
-<!-- QR SCANNER SHEET -->
 <div class="sheet-overlay" id="qrSheet" onclick="closeSheetOutside(event,'qrSheet')">
   <div class="bottom-sheet">
     <div class="sheet-handle"></div>
@@ -267,11 +258,12 @@ canvas#qrCanvas{display:none}
 const supabaseUrl = 'https://omemmjiialtjdpmpebuy.supabase.co';
 const supabaseKey = 'sb_publishable_Am44_fgr0esBVsvREXohbA_kjn76Cgq';
 const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
 async function login() {
   const email = prompt("Email:");
   const password = prompt("Parolă:");
 
-  const { data, error } = await supabaseClient.auth.signInWithPassword({
+  const { error } = await supabaseClient.auth.signInWithPassword({
     email,
     password
   });
@@ -291,10 +283,12 @@ async function checkUser() {
   if (!data.user) {
     await login();
   } else {
-    checkUser();
+    initializeApp();
   }
 }
+
 let exhibitors=[],filter='all',activeId=null,qrStream=null,qrScannedData=null,qrInterval=null;
+
 async function loadData() {
   const { data, error } = await supabaseClient
     .from('Expozanti')
@@ -365,6 +359,7 @@ async function saveData(silent){
     }, 2000);
   }
 }
+
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 
 function render(){
@@ -440,7 +435,6 @@ function cardHTML(e,idx){
 }
 
 function attachListeners(e){
-  const ids=['note','time','cName','cPhone','cEmail'];
   const update=()=>{
     const ex=exhibitors.find(x=>x.id===e.id);if(!ex)return;
     const n=document.getElementById('note_'+e.id);if(n)ex.note=n.value;
@@ -580,6 +574,7 @@ function openSheet(id){document.getElementById(id).classList.add('open');}
 function closeSheet(id){document.getElementById(id).classList.remove('open');}
 function closeSheetOutside(e,id){if(e.target===document.getElementById(id))closeSheet(id);}
 function openStatus(id){activeId=id;openSheet('statusSheet');}
+
 async function setStatus(val){
   const ex=exhibitors.find(e=>e.id===activeId);
   if(!ex) return;
@@ -601,7 +596,6 @@ async function setStatus(val){
   render();
 }
 
-// QR SCANNER
 function openQR(id){
   activeId=id;qrScannedData=null;
   document.getElementById('qrResult').classList.remove('show');
@@ -620,7 +614,7 @@ function startCamera(){
       v.srcObject=stream;v.play();
       qrInterval=setInterval(scanFrame,250);
     })
-    .catch(()=>showToast('Nu s-a putut accesa camera. Verifică permisiunile Safari.'));
+    .catch(()=>showToast('Nu s-a putut accesa camera. Verifică permisiunile browserului.'));
 }
 
 function scanFrame(){
@@ -649,9 +643,9 @@ function parseVCard(raw){
   const r={name:'',phone:'',email:''};
   if(raw.includes('BEGIN:VCARD')){
     raw.split(/\r?\n/).forEach(l=>{
-      if(/^FN:/i.test(l))    r.name =l.replace(/^FN:/i,'').trim();
+      if(/^FN:/i.test(l)) r.name=l.replace(/^FN:/i,'').trim();
       if(/^N:/i.test(l)&&!r.name){const p=l.replace(/^N:/i,'').split(';');r.name=((p[1]||'')+' '+(p[0]||'')).trim();}
-      if(/^TEL/i.test(l))   r.phone=l.replace(/^TEL[^:]*:/i,'').trim();
+      if(/^TEL/i.test(l)) r.phone=l.replace(/^TEL[^:]*:/i,'').trim();
       if(/^EMAIL/i.test(l)) r.email=l.replace(/^EMAIL[^:]*:/i,'').trim();
     });
   } else {
@@ -671,10 +665,12 @@ function applyScannedContact(){
   const ex=exhibitors.find(e=>e.id===activeId);
   if(ex){
     if(qrScannedData.name) ex.cName=qrScannedData.name;
-    if(qrScannedData.phone)ex.cPhone=qrScannedData.phone;
-    if(qrScannedData.email)ex.cEmail=qrScannedData.email;
+    if(qrScannedData.phone) ex.cPhone=qrScannedData.phone;
+    if(qrScannedData.email) ex.cEmail=qrScannedData.email;
   }
-  stopQR();saveData(true);render();
+  stopQR();
+  saveData(true);
+  render();
   setTimeout(()=>openContactSection(activeId),150);
   showToast('Contact salvat din QR ✓');
 }
@@ -730,7 +726,8 @@ function exportPDF(){
 
 function showToast(msg){
   const t=document.getElementById('toast');
-  t.textContent=msg;t.classList.add('show');
+  t.textContent=msg;
+  t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'),2400);
 }
 
@@ -739,7 +736,7 @@ async function initializeApp() {
   render();
 }
 
-initializeApp();
+checkUser();
 </script>
 </body>
 </html>
