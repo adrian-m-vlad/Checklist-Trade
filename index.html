@@ -267,7 +267,33 @@ canvas#qrCanvas{display:none}
 const supabaseUrl = 'https://omemmjiialtjdpmpebuy.supabase.co';
 const supabaseKey = 'sb_publishable_Am44_fgr0esBVsvREXohbA_kjn76Cgq';
 const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+async function login() {
+  const email = prompt("Email:");
+  const password = prompt("Parolă:");
 
+  const { data, error } = await supabaseClient.auth.signInWithPassword({
+    email,
+    password
+  });
+
+  if (error) {
+    alert("Login greșit");
+    console.log(error);
+  } else {
+    alert("Logat cu succes");
+    initializeApp();
+  }
+}
+
+async function checkUser() {
+  const { data } = await supabaseClient.auth.getUser();
+
+  if (!data.user) {
+    await login();
+  } else {
+    checkUser();
+  }
+}
 let exhibitors=[],filter='all',activeId=null,qrStream=null,qrScannedData=null,qrInterval=null;
 async function loadData() {
   const { data, error } = await supabaseClient
